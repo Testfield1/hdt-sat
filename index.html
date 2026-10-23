@@ -337,6 +337,9 @@
   @media (max-width:700px){.adm-filtros{grid-template-columns:1fr 1fr}}
   .adm-botones{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
   .adm-botones .btn-principal{font-size:13px;padding:14px;letter-spacing:1px}
+  .btn-listas{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:-12px 0 16px;background:#fff;border:2px solid #188038;color:#188038;border-radius:30px;padding:12px;font:700 12px 'Montserrat';letter-spacing:1px;cursor:pointer}
+  .btn-listas:hover{background:#188038;color:#fff}
+  .btn-listas svg{width:18px;height:18px}
   .btn-excel{width:100%;background:#1D7044;color:#fff;border:none;border-radius:30px;padding:14px;font:700 13px 'Montserrat';letter-spacing:1px;cursor:pointer}
   .btn-excel:disabled{opacity:.45;cursor:default}
   .adm-resumen{font-size:13px;color:var(--suave);margin:18px 0 10px}
@@ -772,6 +775,10 @@
     </div>
     <h2>Datos registrados</h2>
     <p class="sub-reg">Órdenes atendidas, desde la lista TrabajosDiariosSAT</p>
+    <button type="button" class="btn-listas" onclick="abrirListasHDT()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+      EDITAR LISTAS HDT (GOOGLE SHEETS)
+    </button>
     <div class="tarjeta">
       <div class="adm-filtros">
         <div class="campo"><label for="admDesde">Desde</label><input type="date" id="admDesde"></div>
@@ -2777,7 +2784,7 @@
   pintarAdmin();
 
   let ADMIN_DATOS = [], ADMIN_FILTRADOS = [];
-  const TIPOS_ADMIN = ['DOM', 'RED', 'ELECTRO', 'AUTOGESTIÓN', 'PRESENTACIONES'];
+  const TIPOS_ADMIN = ['DOM', 'RED', 'ELECTRO', 'AUTOGESTIÓN', 'PRESENTACIONES', 'SIN ÓRDENES'];
   const fechaISO = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 
   function irAdmin(){
@@ -2791,6 +2798,12 @@
       document.getElementById('admHasta').value = fechaISO(hoy);
     }
     mostrar('vistaAdmin');
+  }
+
+  // Acceso directo a la hoja "Listas HDT" (solo visible dentro del panel Admin)
+  function abrirListasHDT(){
+    if (!SESION || !SESION.admin) return;
+    window.open('https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/edit', '_blank');
   }
 
   // Fila de SharePoint -> objeto con los datos que usa la tabla y el Excel
@@ -2812,6 +2825,31 @@
     };
   }
 
+  // Órdenes (filas TRABAJO) + una fila "SIN ÓRDENES" por cada turno iniciado que no registró ninguna.
+  // Los datos del turno salen de su INICIO TURNO (o de la última EDICIÓN TURNO, si se editó).
+  function armarFilasAdmin(items){
+    const titulo = it => normal(textoValor(it.Title));
+    const trabajos = items.filter(it => titulo(it) === 'trabajo');
+    const conOrdenes = new Set(trabajos.map(it => textoValor(it.IdTurno)).filter(Boolean));
+    const turnos = new Map();
+    items.filter(it => ['inicio turno', 'edicion turno'].includes(titulo(it))).forEach(it => {
+      const id = textoValor(it.IdTurno) || (textoValor(it.FechaTurno) + '|' + textoValor(it.Tecnico));
+      turnos.set(id, it);   // vienen en orden de creación: queda la última versión del turno
+    });
+    const NA = 'No aplica';
+    const sinOrdenes = [...turnos].filter(([id]) => !conOrdenes.has(id)).map(([, it]) => {
+      const f = filaAdmin(it);
+      return Object.assign({}, f, {
+        sinOrdenes: true, tipo: 'SIN ÓRDENES', electro: false, inicio: '',
+        comuna: NA, ayudante: f.ayudante || NA, patente: f.patente || NA, despachador: f.despachador || NA,
+        direccion: NA, po: NA, nis: NA, medidor: NA, poste: NA, asignacion: NA, empalme: NA, fin: NA,
+        descripcion: 'Turno sin órdenes registradas', sellos: NA, causasCobro: NA, causasCierre: NA,
+        lectura: NA, cnr: NA, medRet: NA, lecRet: NA, medIns: NA, lecIns: NA
+      });
+    });
+    return trabajos.map(filaAdmin).concat(sinOrdenes);
+  }
+
   async function buscarAdmin(){
     const desde = document.getElementById('admDesde').value, hasta = document.getElementById('admHasta').value;
     if (!desde || !hasta || desde > hasta) { aviso('Revisa las fechas'); return; }
@@ -2822,7 +2860,7 @@
     try {
       const r = await llamarFlujo(URL_ADMIN, { accion: 'datos', correo: SESION.correo, token: SESION.token, desde, hasta: fechaISO(h) });
       if (!r.ok) { aviso(r.mensaje || 'Sin permiso o sesión vencida'); return; }
-      ADMIN_DATOS = (r.datos || []).map(filaAdmin)
+      ADMIN_DATOS = armarFilasAdmin(r.datos || [])
         .filter(x => x.fecha >= desde && x.fecha <= hasta)
         .sort((a, b) => (a.fecha + a.inicio).localeCompare(b.fecha + b.inicio));
       filtrarAdmin();
@@ -2841,15 +2879,16 @@
       (!zona || normal(x.zona) === zona) &&
       (!tipo || (tipo === 'ELECTRO' ? x.electro : (!x.electro && normal(x.tipo) === normal(tipo)))) &&
       (!tec || normal(x.tecnico + ' ' + x.ayudante).includes(tec)));
-    const n = ADMIN_FILTRADOS.length;
+    const n = ADMIN_FILTRADOS.length, nSin = ADMIN_FILTRADOS.filter(x => x.sinOrdenes).length, nOrd = n - nSin;
     document.getElementById('admExcel').disabled = !n;
-    document.getElementById('admResumen').innerHTML = `<b>${n}</b> ${n === 1 ? 'orden encontrada' : 'órdenes encontradas'}` +
+    document.getElementById('admResumen').innerHTML = `<b>${nOrd}</b> ${nOrd === 1 ? 'orden encontrada' : 'órdenes encontradas'}` +
+      (nSin ? ` · <b>${nSin}</b> ${nSin === 1 ? 'turno' : 'turnos'} sin órdenes` : '') +
       (n > 200 ? ' · se muestran las primeras 200, el Excel lleva todas' : '');
     const fCL = f => f.split('-').reverse().join('-');
     document.getElementById('admTabla').innerHTML = n ? `<table class="adm-tabla"><tr><th>Fecha</th><th>Zona</th><th>Técnico</th><th>Tipo</th><th>N° Incidencia</th><th>Dirección</th><th>Horario</th></tr>` +
       ADMIN_FILTRADOS.slice(0, 200).map(x => `<tr><td>${fCL(x.fecha)}</td><td>${esc(x.zona)}${x.comuna ? '<br><small>' + esc(x.comuna) + '</small>' : ''}</td>
         <td>${esc(x.tecnico)}</td><td><b>${esc(x.tipo)}</b>${x.electro ? '<br><small style="color:var(--rojo)">ELECTRO</small>' : ''}</td>
-        <td>${esc(x.po)}</td><td>${esc(x.direccion)}</td><td style="white-space:nowrap">${esc(x.inicio)}${x.fin ? ' – ' + esc(x.fin) : ''}</td></tr>`).join('') + '</table>'
+        <td>${esc(x.po)}</td><td>${esc(x.direccion)}</td><td style="white-space:nowrap">${x.sinOrdenes ? esc(horarioDeTurno(x.turno) || x.turno) : esc(x.inicio) + (x.fin ? ' – ' + esc(x.fin) : '')}</td></tr>`).join('') + '</table>'
       : '<div class="adm-vacio">No hay órdenes con esos filtros.</div>';
   }
 
