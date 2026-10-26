@@ -229,6 +229,13 @@
   .foto img{width:40px;height:40px;object-fit:cover;border-radius:6px;display:none}
   .foto.lista img{display:block}
   .fotos.error{border-color:var(--rojo)}
+  .fotos-extra{border-top:1px dashed #F7C3BF;margin-top:6px;padding-top:12px}
+  .fotos-extra-cab{display:flex;align-items:center;justify-content:space-between;font-size:10px;font-weight:800;letter-spacing:.5px;color:var(--texto);margin-bottom:8px;gap:8px}
+  .fotos-extra-cab .badge{background:#fff;border:1px solid #F7C3BF;color:#B3160F}
+  .miniaturas{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:8px;margin-top:10px}
+  .miniatura{position:relative;aspect-ratio:1}
+  .miniatura img{width:100%;height:100%;object-fit:cover;border-radius:8px;display:block}
+  .miniatura button{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--rojo);color:#fff;font:700 13px/22px 'Montserrat';cursor:pointer;padding:0}
 
   .bloque-extra{background:#F7F7F7;border:1px solid #E6E6E6;border-radius:14px;padding:14px 14px 4px;margin:-12px 0 24px}
   .bloque-extra.error{border-color:var(--rojo);background:#FFF6F5}
@@ -628,7 +635,7 @@
 
       <div class="fila">
         <div class="campo">
-          <label for="fTipo">Tipo orden</label>
+          <label for="fTipo">Tipo orden *</label>
           <select id="fTipo"></select>
         </div>
         <div class="campo">
@@ -643,12 +650,12 @@
       </div>
 
       <div class="fila">
-        <div class="campo"><label for="fNis">NIS</label><input type="text" id="fNis" inputmode="numeric"></div>
-        <div class="campo"><label for="fMedidor">Medidor</label><input type="text" id="fMedidor"></div>
+        <div class="campo"><label for="fNis">NIS *</label><input type="text" id="fNis" inputmode="numeric" required></div>
+        <div class="campo"><label for="fMedidor">Medidor *</label><input type="text" id="fMedidor" required></div>
       </div>
 
       <div class="fila">
-        <div class="campo"><label for="fLectura">Lectura</label><input type="text" id="fLectura" inputmode="numeric"></div>
+        <div class="campo"><label for="fLectura">Lectura *</label><input type="text" id="fLectura" inputmode="numeric" required></div>
         <div class="campo">
           <label for="fCnr">CNR *</label>
           <select id="fCnr" required><option>No</option><option>Sí</option></select>
@@ -663,13 +670,13 @@
       </div>
 
       <div class="campo">
-        <label for="fSed">Equipo o SED</label>
-        <input type="text" id="fSed" placeholder="31808 Callejon Las Cruces">
+        <label for="fSed">Equipo o SED *</label>
+        <input type="text" id="fSed" placeholder="31808 Callejon Las Cruces" required>
       </div>
 
       <div class="fila">
-        <div class="campo"><label for="fPoste">Poste</label><input type="text" id="fPoste"></div>
-        <div class="campo"><label for="fEmpalme">Empalme/ICP</label><input type="text" id="fEmpalme"></div>
+        <div class="campo"><label for="fPoste">Poste *</label><input type="text" id="fPoste" required></div>
+        <div class="campo"><label for="fEmpalme">Empalme/ICP *</label><input type="text" id="fEmpalme" required></div>
       </div>
 
       <div class="fila3">
@@ -678,8 +685,8 @@
         <div class="campo"><label for="fFin">Fin *</label><input type="time" id="fFin" required></div>
       </div>
 
-      <div class="campo" data-tipos="RED,DOM">
-        <label>Actividad facturable</label>
+      <div class="campo" data-tipos="DOM">
+        <label>Actividad facturable *</label>
         <div class="multi" id="multiActividad" data-placeholder="Seleccionar actividad(es) facturable(s)..."></div>
       </div>
       <div class="bloque-extra" id="bloqueCambioMedidor" style="display:none">
@@ -695,7 +702,7 @@
       </div>
 
       <div class="campo" data-tipos="RED" id="campoCausa">
-        <label class="lbl-rojo">Causa de cierre (RED)</label>
+        <label class="lbl-rojo">Causa de cierre (RED) *</label>
         <div class="multi" id="multiCausa" data-placeholder="Seleccionar causa(s) de cierre..."></div>
       </div>
 
@@ -730,9 +737,15 @@
         </div>
         <div class="fotos-aviso">
           ⚠️ Las <b>3 fotos son obligatorias</b>. Se subirán a SharePoint en una carpeta con el nombre del PO.<br>
-          📱 <b>Recuerda enviar el resto de fotos por WhatsApp</b>.
+          📱 Puedes agregar <b>hasta 12 fotos más</b> abajo: se envían solo en el reporte de WhatsApp (15 en total).
         </div>
         <div id="listaFotos"></div>
+        <div class="fotos-extra">
+          <div class="fotos-extra-cab"><span>FOTOS ADICIONALES PARA WHATSAPP (OPCIONAL)</span><span class="badge" id="nFotosExtra">0/12</span></div>
+          <input type="file" accept="image/*" multiple id="inFotosExtra" style="display:none" onchange="agregarFotosExtra(this)">
+          <button type="button" class="btn-archivo" id="btnFotosExtra" onclick="document.getElementById('inFotosExtra').click()">+ Agregar fotos</button>
+          <div class="miniaturas" id="miniaturasExtra"></div>
+        </div>
       </div>
 
       <div class="sellos" id="bloqueSellos">
@@ -1107,7 +1120,7 @@
       cargarPestana(HOJA_TELEFONOS, 'telefonosCache', filas =>
         filas.map(f => ({ zona: f.zona, compania: f.compania, numero: f.numero, nombre: f.nombre })).filter(t => t.numero)),
       cargarPestana(HOJA_TECNICOS, 'tecnicosCache', filas =>
-        filas.map(f => ({ zona: f.zona || '', nombre: f.nombre })).filter(t => t.nombre)),
+        filas.map(f => ({ zona: f.zona || '', nombre: f.nombre, supervisor: f.supervisor || '', copia: f.copia || '' })).filter(t => t.nombre)),
       cargarPestana(HOJA_DESPACHADORES, 'despachadoresCache', filas =>
         filas.map(f => ({ zona: f.zona || '', nombre: f.nombre })).filter(t => t.nombre)),
       cargarPestana(HOJA_PATENTES, 'patentesCache', filas =>
@@ -1129,6 +1142,18 @@
   }
 
   // Técnicos y ayudantes: la misma lista (pestaña Tecnicos). Sin columna Zona, o con TODAS, aparecen en todas las zonas.
+  // A quién llega el PDF de cierre: columnas Supervisor y Copia de la pestaña Tecnicos (según el técnico principal).
+  // Si el técnico no tiene supervisor en la hoja, llega al correo por defecto.
+  const CORREO_PDF_DEFECTO = 'sahumadc@chilquintadx.cl';
+  function destinatariosPdf(t){
+    const fila = TECNICOS.find(x => normal(x.nombre) === normal(t.tecnico)) || {};
+    const lista = txt => String(txt || '').split(/[;,\s]+/).map(c => c.trim().toLowerCase()).filter(c => c.includes('@'));
+    const para = lista(fila.supervisor);
+    if (!para.length) para.push(CORREO_PDF_DEFECTO);
+    const cc = [...new Set(lista(fila.copia).concat(lista(t.correo)))].filter(c => !para.includes(c));
+    return { para: para.join(';'), cc: cc.join(';') };
+  }
+
   function tecnicosDeZona(zonaId, lista = TECNICOS){
     const z = normal(ZONAS.find(x => x.id === zonaId).nombre);
     return lista.filter(t => !t.zona || normal(t.zona) === 'todas' || normal(t.zona) === z).map(t => t.nombre);
@@ -1648,6 +1673,8 @@
     armarMulti('multiCausa', CAUSAS_HOJA.length ? CAUSAS_HOJA : CAUSAS_RED);
 
     fotosFaena = [null, null, null];
+    fotosExtra = [];
+    pintarFotosExtra();
     document.getElementById('listaFotos').innerHTML = FOTOS_RED.map((n, i) => `
       <div class="foto" id="foto${i}">
         <label>${i + 1}. ${n.toUpperCase()} *</label>
@@ -1677,10 +1704,10 @@
     document.getElementById('tipoFotos').textContent = tipo;
   }
   function visible(id){ return document.getElementById(id).offsetParent !== null; }
-  document.getElementById('fTipo').addEventListener('change', ajustarTipo);
+  document.getElementById('fTipo').addEventListener('change', () => { ajustarTipo(); actualizarExtras(); });
 
   // CNR "Sí" -> tipos de CNR; actividad "medidor fallado..." -> datos del cambio de medidor
-  function hayCambioMedidor(){ return valoresMulti('multiActividad').some(a => normal(a).includes('medidor fallado')); }
+  function hayCambioMedidor(){ return document.getElementById('fTipo').value === 'DOM' && valoresMulti('multiActividad').some(a => normal(a).includes('medidor fallado')); }
   function tiposCNR(){ return [...document.querySelectorAll('.chk-cnr:checked')].map(c => c.value); }
   function actualizarExtras(){
     document.getElementById('bloqueCNR').style.display = document.getElementById('fCnr').value === 'Sí' ? '' : 'none';
@@ -1703,6 +1730,32 @@
     if (archivo) { img.src = URL.createObjectURL(archivo); box.classList.add('lista'); }
     else box.classList.remove('lista');
     contarFotos();
+  }
+
+  // ----- Fotos adicionales (solo WhatsApp, RED): hasta 12, además de las 3 obligatorias -----
+  const MAX_FOTOS_EXTRA = 12;
+  let fotosExtra = [];
+  function agregarFotosExtra(input){
+    const nuevas = [...input.files];
+    const libres = MAX_FOTOS_EXTRA - fotosExtra.length;
+    if (nuevas.length > libres) aviso('Máximo ' + MAX_FOTOS_EXTRA + ' fotos adicionales: se agregaron ' + Math.max(libres, 0));
+    fotosExtra = fotosExtra.concat(nuevas.slice(0, Math.max(libres, 0)));
+    input.value = '';
+    pintarFotosExtra();
+    guardarBorrador();
+  }
+  function quitarFotoExtra(i){
+    fotosExtra.splice(i, 1);
+    pintarFotosExtra();
+    guardarBorrador();
+  }
+  function pintarFotosExtra(){
+    const cont = document.getElementById('miniaturasExtra');
+    cont.querySelectorAll('img').forEach(im => URL.revokeObjectURL(im.src));
+    cont.innerHTML = fotosExtra.map((a, i) =>
+      `<div class="miniatura"><img src="${URL.createObjectURL(a)}" alt=""><button type="button" onclick="quitarFotoExtra(${i})" aria-label="Quitar">×</button></div>`).join('');
+    document.getElementById('nFotosExtra').textContent = fotosExtra.length + '/' + MAX_FOTOS_EXTRA;
+    document.getElementById('btnFotosExtra').style.display = fotosExtra.length >= MAX_FOTOS_EXTRA ? 'none' : '';
   }
 
   function contarFotos(){
@@ -1840,7 +1893,7 @@
   // ----- Reporte de orden RED por WhatsApp (texto + las mismas fotos del formulario) -----
   async function enviarReporteWsp(){
     const v = id => document.getElementById(id).value.trim() || '-';
-    const fotos = fotosFaena.filter(Boolean);
+    const fotos = fotosFaena.filter(Boolean).concat(fotosExtra);
     const interrupcion = document.getElementById('fInterrupcion').value;
     if (!interrupcion || !document.getElementById('fProbatorias').value) {
       ['fInterrupcion', 'fProbatorias'].forEach(id => {
@@ -1885,6 +1938,12 @@
       if (malo) ok = false;
     });
     const tipo = document.getElementById('fTipo').value;
+    // selección múltiple obligatoria (actividad; causa de cierre solo en RED)
+    [['multiActividad', 'multiActividad'], ['campoCausa', 'multiCausa']].forEach(([idVis, idMulti]) => {
+      if (visible(idVis) && !valoresMulti(idMulti).length) {
+        document.getElementById(idMulti).closest('.campo').classList.add('error'); ok = false;
+      }
+    });
     if (document.getElementById('fCnr').value === 'Sí' && !tiposCNR().length) {
       document.getElementById('bloqueCNR').classList.add('error'); ok = false;
     }
@@ -2263,6 +2322,7 @@
       HorasExtra: t.horasExtra.reduce((s, x) => s + x.horas, 0)
     }), {
       reporteHtml: reporteTurnoHtml(t),
+      ...destinatariosPdf(t),
       nombrePdf: limpiarNombre('Resumen turno ' + t.zona + ' ' + t.fecha + ' ' + t.tecnico) + '.pdf',
       asunto: 'Resumen de turno · ' + t.zona + ' · ' + t.fecha.split('-').reverse().join('-') + ' · ' + t.tecnico
     });
@@ -2317,14 +2377,14 @@
     relojBorrador = setTimeout(async () => {
       const campos = {};
       CAMPOS_BORRADOR.forEach(id => campos[id] = document.getElementById(id).value);
-      const hayAlgo = CAMPOS_BORRADOR.some(id => id !== 'fTipo' && id !== 'fCnr' && campos[id]) || campos.fCnr === 'Sí' || fotosFaena.some(Boolean)
+      const hayAlgo = CAMPOS_BORRADOR.some(id => id !== 'fTipo' && id !== 'fCnr' && campos[id]) || campos.fCnr === 'Sí' || fotosFaena.some(Boolean) || fotosExtra.length
                       || valoresMulti('multiActividad').length || valoresMulti('multiCausa').length;
       try {
         if (!hayAlgo) { await idb.del('borradorFaena'); return; }
         await idb.set('borradorFaena', {
           idTurno: turnoActual.idTurno, fecha: Date.now(), campos,
           actividades: valoresMulti('multiActividad'), causas: valoresMulti('multiCausa'), cnrTipos: tiposCNR(),
-          fotos: fotosFaena.slice()
+          fotos: fotosFaena.slice(), fotosExtra: fotosExtra.slice()
         });
       } catch(e){}
     }, 400);
@@ -2369,6 +2429,8 @@
       if (marcados.length) marcados[0].onchange();
     });
     (b.fotos || []).forEach((a, i) => { if (a) ponerFoto(i, a); });
+    fotosExtra = (b.fotosExtra || []).slice(0, MAX_FOTOS_EXTRA);
+    pintarFotosExtra();
     document.querySelectorAll('.chk-cnr').forEach(c => c.checked = (b.cnrTipos || []).includes(c.value));
     actualizarExtras();
     pintarSellos();
@@ -2490,7 +2552,8 @@
         const it = cola[0].registro ? cola[0] : { registro: cola[0] };
         await llamarFlujo(URL_ESCRIBIR, {
           registro: it.registro, carpeta: '', fotos: [],
-          reporteHtml: it.reporteHtml || '', nombrePdf: it.nombrePdf || '', asunto: it.asunto || ''
+          reporteHtml: it.reporteHtml || '', nombrePdf: it.nombrePdf || '', asunto: it.asunto || '',
+          para: it.para || '', cc: it.cc || ''
         });
         cola.shift();
         guardarCola();
