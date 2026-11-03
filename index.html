@@ -462,6 +462,11 @@
 
   /* Bloques de color: blanco con acento a la izquierda */
   .wsp{background:#fff;border:1px solid var(--borde);border-left:4px solid #1A8F4C;border-radius:var(--radio)}
+  .wsp-paso{border:1px solid var(--borde);border-radius:8px;padding:12px;margin-bottom:10px}
+  .wsp-paso b{display:block;font-size:13px;margin-bottom:8px;color:var(--carbon)}
+  .wsp-paso.hecho{background:#E7F7EE;border-color:#B7E4C7}
+  .wsp-paso.hecho b::after{content:'  ✓ enviado';color:#1A8F4C}
+  .btn-wsp:disabled{opacity:.55;cursor:wait}
   .fotos{background:#fff;border:1px solid var(--borde);border-left:4px solid var(--rojo);border-radius:var(--radio)}
   .fotos-aviso{background:#FDECEC;border-color:#F7C9C9;font-style:normal;border-radius:7px}
   .fotos.error{border-color:var(--rojo)}
@@ -857,13 +862,6 @@
         <textarea id="fDescripcion" required></textarea>
       </div>
 
-      <div class="campo" data-tipos="RED">
-        <button type="button" class="btn-wsp" onclick="enviarReporteWsp()">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.3-.4.8-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.9 11.9 0 0 0 4.6 4c1.7.7 2.3.8 3.2.7a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>
-          Enviar reporte a WhatsApp
-        </button>
-        <small class="nota-wsp">En el celular se envían el texto y las fotos cargadas. En el PC solo el texto.</small>
-      </div>
 
       <div class="fotos" data-tipos="RED" id="bloqueFotos">
         <div class="fotos-cab">
@@ -881,6 +879,14 @@
           <button type="button" class="btn-archivo" id="btnFotosExtra" onclick="document.getElementById('inFotosExtra').click()">+ Sumar fotos</button>
           <div class="miniaturas" id="miniaturasExtra"></div>
         </div>
+      </div>
+
+      <div class="campo" data-tipos="RED">
+        <button type="button" class="btn-wsp" onclick="enviarReporteWsp()">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.3-.4.8-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.9 11.9 0 0 0 4.6 4c1.7.7 2.3.8 3.2.7a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>
+          Enviar reporte a WhatsApp
+        </button>
+        <small class="nota-wsp">Se envía en 2 pasos: primero el texto y luego todas las fotos cargadas.</small>
       </div>
 
       <div class="sellos" id="bloqueSellos">
@@ -999,6 +1005,27 @@
     <p class="conf-txt" id="confTxt"></p>
     <button class="btn-principal" onclick="confirmarCierre()">Sí, cerrar y enviar PDF</button>
     <button class="btn-gris btn-volver" onclick="cerrarConfirmacion()">Cancelar</button>
+  </div>
+</div>
+
+<!-- Reporte RED a WhatsApp en 2 pasos -->
+<div class="fondo-modal modal-centro" id="modalWsp" onclick="if(event.target===this)cerrarModalWsp()">
+  <div class="caja">
+    <div class="caja-cab">
+      <h3 style="color:#1A8F4C">Enviar reporte a WhatsApp</h3>
+      <button class="x" onclick="cerrarModalWsp()">✕</button>
+    </div>
+    <p class="conf-txt">WhatsApp no recibe bien el texto y varias fotos juntas, por eso se envía en 2 pasos. En cada paso elige el mismo chat o grupo.</p>
+    <div class="wsp-paso" id="wspPaso1">
+      <b>Paso 1 · Texto del reporte</b>
+      <button type="button" class="btn-wsp" id="btnWspTexto" onclick="wspEnviarTexto()">Enviar texto</button>
+    </div>
+    <div class="wsp-paso" id="wspPaso2">
+      <b>Paso 2 · Fotos (<span id="wspNFotos">0</span>)</b>
+      <button type="button" class="btn-wsp" id="btnWspFotos" onclick="wspEnviarFotos()" disabled>Preparando fotos...</button>
+      <small class="nota-wsp" id="wspNotaFotos"></small>
+    </div>
+    <button class="btn-gris btn-volver" onclick="cerrarModalWsp()">Listo</button>
   </div>
 </div>
 
@@ -2048,19 +2075,52 @@
       '· *Detalle*: ' + v('fDescripcion')
     ].join('\n');
 
-    // copia el texto por si WhatsApp no lo pega junto a las fotos
+    // Se envía en 2 pasos (cada uno con su propio toque): WhatsApp en Android suele quedarse
+    // con 1 sola foto cuando recibe texto y varias fotos juntas.
+    wspTexto = texto;
+    wspArchivos = null;
     try { await navigator.clipboard.writeText(texto); } catch(e){}
-
-    if (fotos.length && navigator.canShare && navigator.canShare({ files: fotos })) {
-      try {
-        await navigator.share({ text: texto, files: fotos });
-        return;
-      } catch (e) {
-        if (e.name === 'AbortError') return;   // el usuario cerró la ventana de compartir
+    ['wspPaso1', 'wspPaso2'].forEach(id => document.getElementById(id).classList.remove('hecho'));
+    const btnF = document.getElementById('btnWspFotos');
+    const nota = document.getElementById('wspNotaFotos');
+    document.getElementById('wspNFotos').textContent = fotos.length;
+    btnF.disabled = true; btnF.textContent = 'Preparando fotos...'; nota.textContent = '';
+    document.getElementById('modalWsp').classList.add('ver');
+    // fotos reducidas a JPEG (máx. 1600 px): pesan mucho menos y WhatsApp las acepta todas
+    try {
+      wspArchivos = [];
+      for (let i = 0; i < fotos.length; i++) {
+        const b64 = await comprimirFoto(fotos[i]);
+        const bin = atob(b64), bytes = new Uint8Array(bin.length);
+        for (let k = 0; k < bin.length; k++) bytes[k] = bin.charCodeAt(k);
+        wspArchivos.push(new File([bytes], 'PO_' + limpiarNombre(v('fPO')) + '_' + (i + 1) + '.jpg', { type: 'image/jpeg' }));
       }
+    } catch(e){ wspArchivos = fotos.slice(); }
+    const puede = wspArchivos.length && navigator.canShare && navigator.canShare({ files: wspArchivos });
+    btnF.disabled = !puede;
+    btnF.textContent = puede ? 'Enviar ' + wspArchivos.length + (wspArchivos.length === 1 ? ' foto' : ' fotos') : 'Enviar fotos';
+    nota.textContent = !wspArchivos.length ? 'No hay fotos cargadas.'
+      : (puede ? '' : 'Este equipo no permite adjuntar fotos desde la app: agrégalas directamente en WhatsApp.');
+  }
+
+  let wspTexto = '', wspArchivos = null;
+  function cerrarModalWsp(){ document.getElementById('modalWsp').classList.remove('ver'); }
+  async function wspEnviarTexto(){
+    if (navigator.share) {
+      try { await navigator.share({ text: wspTexto }); document.getElementById('wspPaso1').classList.add('hecho'); return; }
+      catch(e){ if (e.name === 'AbortError') return; }
     }
-    window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
-    if (fotos.length) aviso('Desde este equipo no se pueden adjuntar las fotos: agrégalas en WhatsApp');
+    window.open('https://wa.me/?text=' + encodeURIComponent(wspTexto), '_blank');
+    document.getElementById('wspPaso1').classList.add('hecho');
+  }
+  async function wspEnviarFotos(){
+    if (!wspArchivos || !wspArchivos.length) return;
+    try {
+      await navigator.share({ files: wspArchivos });
+      document.getElementById('wspPaso2').classList.add('hecho');
+    } catch(e){
+      if (e.name !== 'AbortError') aviso('No se pudieron compartir las fotos: agrégalas directamente en WhatsApp');
+    }
   }
 
   async function guardarTrabajo(){
