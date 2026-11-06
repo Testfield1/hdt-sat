@@ -1009,7 +1009,7 @@
 </div>
 
 <!-- Reporte RED a WhatsApp en 2 pasos -->
-<div class="fondo-modal modal-centro" id="modalWsp" onclick="if(event.target===this)cerrarModalWsp()">
+<div class="fondo-modal modal-centro" id="modalWspRed" onclick="if(event.target===this)cerrarModalWsp()">
   <div class="caja">
     <div class="caja-cab">
       <h3 style="color:#1A8F4C">Enviar reporte a WhatsApp</h3>
@@ -2085,7 +2085,7 @@
     const nota = document.getElementById('wspNotaFotos');
     document.getElementById('wspNFotos').textContent = fotos.length;
     btnF.disabled = true; btnF.textContent = 'Preparando fotos...'; nota.textContent = '';
-    document.getElementById('modalWsp').classList.add('ver');
+    document.getElementById('modalWspRed').classList.add('ver');
     // fotos reducidas a JPEG (máx. 1600 px): pesan mucho menos y WhatsApp las acepta todas
     try {
       wspArchivos = [];
@@ -2096,7 +2096,7 @@
         wspArchivos.push(new File([bytes], 'PO_' + limpiarNombre(v('fPO')) + '_' + (i + 1) + '.jpg', { type: 'image/jpeg' }));
       }
     } catch(e){ wspArchivos = fotos.slice(); }
-    const puede = wspArchivos.length && navigator.canShare && navigator.canShare({ files: wspArchivos });
+    const puede = ES_MOVIL && wspArchivos.length && navigator.canShare && navigator.canShare({ files: wspArchivos });
     btnF.disabled = !puede;
     btnF.textContent = puede ? 'Enviar ' + wspArchivos.length + (wspArchivos.length === 1 ? ' foto' : ' fotos') : 'Enviar fotos';
     nota.textContent = !wspArchivos.length ? 'No hay fotos cargadas.'
@@ -2104,9 +2104,12 @@
   }
 
   let wspTexto = '', wspArchivos = null;
-  function cerrarModalWsp(){ document.getElementById('modalWsp').classList.remove('ver'); }
+  function cerrarModalWsp(){ document.getElementById('modalWspRed').classList.remove('ver'); }
+  // En PC (Windows) el menú de compartir del sistema no ofrece WhatsApp y suele dar error:
+  // ahí el texto se abre en WhatsApp Web y las fotos se adjuntan a mano.
+  const ES_MOVIL = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   async function wspEnviarTexto(){
-    if (navigator.share) {
+    if (ES_MOVIL && navigator.share) {
       try { await navigator.share({ text: wspTexto }); document.getElementById('wspPaso1').classList.add('hecho'); return; }
       catch(e){ if (e.name === 'AbortError') return; }
     }
